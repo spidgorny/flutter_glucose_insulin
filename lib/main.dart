@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:jiffy/jiffy.dart';
 
+import 'DayData.dart';
 import 'SimpleTimeSeriesChart.dart';
-import 'test/daydata.dart';
 
 void main() {
   runApp(MyApp());
@@ -30,10 +31,16 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  DayData day;
+
   @override
   void initState() {
     super.initState();
-    testDayData();
+    DateTime today = Jiffy().startOf(Units.DAY);
+    print(['today', today]);
+    this.day = DayData(today, [
+      new Ate("18:30", 1),
+    ]);
   }
 
   @override
@@ -47,6 +54,20 @@ class _MyHomePageState extends State<MyHomePage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             Expanded(child: SimpleTimeSeriesChart.withSampleData()),
+            Expanded(
+                child: ListView.builder(
+                    itemCount: day.intake.length,
+                    itemBuilder: (context, index) {
+                      final item = day.intake[index];
+
+                      return ListTile(
+                        title: Text(
+                          item.time,
+                          style: Theme.of(context).textTheme.headline5,
+                        ),
+                        subtitle: Text('Meal size: ${item.amount}'),
+                      );
+                    }))
           ],
         ),
       ),
