@@ -29,6 +29,8 @@ dependencies:
   cupertino_icons: ^0.1.3
   charts_flutter: any
   interpolate: any
+  json_store:
+  jiffy: 3.0.1
 
 dev_dependencies:
   flutter_test:
