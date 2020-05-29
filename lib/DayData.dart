@@ -1,3 +1,5 @@
+import 'package:jiffy/jiffy.dart';
+
 class Ate {
   String time;
   double amount;
@@ -7,6 +9,11 @@ class Ate {
     this.time = json['time'];
     this.amount = json['amount'];
   }
+
+  DateTime get dateTime => Jiffy()
+      .startOf(Units.DAY)
+      .add(Duration(hours: this.hour, minutes: this.minute));
+
   Map<String, dynamic> toJson() => {
         '_type': 'Ate',
         'time': time,
@@ -19,6 +26,13 @@ class Ate {
 
   int get minute {
     return int.parse(this.time.split(':')[1]);
+  }
+
+  Duration hoursSince(Ate prev) {
+    if (null == prev) {
+      return null;
+    }
+    return this.dateTime.difference(prev.dateTime);
   }
 }
 

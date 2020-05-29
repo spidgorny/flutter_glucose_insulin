@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:charts_flutter/flutter.dart' as charts;
 import 'package:flutter/material.dart';
 import 'package:jiffy/jiffy.dart';
@@ -19,7 +21,7 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: MyHomePage(title: 'Glucose Insulin'),
+      home: MyHomePage(title: 'Glucose Insulin Hunger'),
     );
   }
 }
@@ -45,6 +47,7 @@ class _MyHomePageState extends State<MyHomePage> {
       new Ate("12:30", 1),
       new Ate("17:00", 1),
     ]);
+    new Timer.periodic(Duration(seconds: 60), (Timer t) => setState(() {}));
   }
 
   @override
@@ -68,6 +71,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     itemCount: day.intake.length,
                     itemBuilder: (context, index) {
                       final item = day.intake[index];
+                      var prev = index > 0 ? day.intake[index - 1] : null;
 
                       return ListTile(
                         title: Text(
@@ -75,6 +79,10 @@ class _MyHomePageState extends State<MyHomePage> {
                           style: Theme.of(context).textTheme.headline5,
                         ),
                         subtitle: Text('Meal size: ${item.amount}'),
+                        trailing: item.hoursSince(prev) != null
+                            ? Text(
+                                'Break: ${(item.hoursSince(prev).inMinutes / 60).toStringAsFixed(2)}h')
+                            : null,
                       );
                     }))
           ],
@@ -91,26 +99,61 @@ class _MyHomePageState extends State<MyHomePage> {
   List<charts.Series<TimeSeriesSales, DateTime>> createChartData() {
     List<TimeSeriesSales> data = [];
     var today = Jiffy(this.day.date).startOf(Units.DAY);
-    data.add(new TimeSeriesSales(today, 0));
+    data.add(new TimeSeriesSales(today, 0)); // start day sleeping and hungry
+    var fiveMinutes = Duration(minutes: 5);
+    int i = 0;
     for (var ate in this.day.intake) {
       var ateTime = new DateTime(this.day.date.year, this.day.date.month,
           this.day.date.day, ate.hour, ate.minute);
+      print('ate at ${ateTime.hour}:${ateTime.minute}');
+      if (ate == this.day.intake.first) {
+        print('  first, add "0" 5 minutes before');
+        data.add(new TimeSeriesSales(
+            Jiffy(ateTime).subtract(duration: fiveMinutes), 0));
+      }
+      if (i <= this.day.intake.length - 2) {
+        print('  not last');
+        var next = this.day.intake[i + 1];
+        var timeTillNext = next.dateTime.difference(ate.dateTime);
+        var fiveHours = Duration(hours: 5);
+        if (timeTillNext.compareTo(fiveHours) < 0) {
+          print(['  timeTillNext is < than 5h', timeTillNext.toString()]);
+          var partialTime = timeTillNext.inSeconds / fiveHours.inSeconds;
+          var height = (ate.amount * partialTime * 100).round();
+          print(['  partialTime', partialTime, height]);
+          data.add(new TimeSeriesSales(
+              Jiffy(next.dateTime).subtract(duration: fiveMinutes), height));
+        } else {
+          var ateTimePlus5 = ateTime.add(fiveHours);
+          print([
+            '  next food in > than 5h, add "0" at',
+            ateTimePlus5.hour.toString() + ':' + ateTimePlus5.minute.toString()
+          ]);
+          data.add(new TimeSeriesSales(ateTimePlus5, 0));
+        }
+      } else {
+        print(['  no next', i]);
+      }
+
+      // main time + 25 min (not so steep)
+      var twentyFiveMinutes = Duration(minutes: 25);
       data.add(new TimeSeriesSales(
-          Jiffy(ateTime).subtract(duration: Duration(minutes: 5)), 0));
-      data.add(new TimeSeriesSales(ateTime, (ate.amount * 100).round()));
-      var ateTimePlus5 = ateTime.add(Duration(hours: 5));
-      data.add(new TimeSeriesSales(ateTimePlus5, 0));
+          ateTime.add(twentyFiveMinutes), (ate.amount * 100).round()));
+      i++;
     }
     data.add(new TimeSeriesSales(Jiffy(this.day.date).endOf(Units.DAY), 0));
 
     data.sort(
         (TimeSeriesSales a, TimeSeriesSales b) => a.time.compareTo(b.time));
+    print(data
+        .map((el) => Jiffy(el.time).Hm + ' [' + el.sales.toString() + ']')
+        .toList());
     data = smoothSeries(data);
 
     /////
     final myTabletData = [
       new TimeSeriesSales(Jiffy().dateTime, -50),
-      new TimeSeriesSales(Jiffy().add(duration: Duration(minutes: 1)), 100),
+      new TimeSeriesSales(Jiffy().add(duration: Duration(minutes: 1)), 120),
     ];
 
     return [
