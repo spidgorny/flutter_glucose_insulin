@@ -12,6 +12,14 @@ class Ate {
         'time': time,
         'amount': amount,
       };
+
+  int get hour {
+    return int.parse(this.time.split(':')[0]);
+  }
+
+  int get minute {
+    return int.parse(this.time.split(':')[1]);
+  }
 }
 
 class DayData {

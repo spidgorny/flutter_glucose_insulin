@@ -10,9 +10,9 @@ List<TimeSeriesSales> smoothSeries(List<TimeSeriesSales> data) {
   for (var sectionEnd in data.sublist(1)) {
     var p3 = sectionEnd;
     var p4 = i < data.length - 1 ? data[i + 1] : data.last;
-    print([p1.sales, p2.sales, p3.sales, p4.sales]);
+//    print([p1.sales, p2.sales, p3.sales, p4.sales]);
     var dataPlus = interpolateBetween(p1, p2, p3, p4);
-    print([p2.sales, sectionEnd.sales, dataPlus.length]);
+//    print([p2.sales, sectionEnd.sales, dataPlus.length]);
     data.addAll(dataPlus);
 
     p1 = p2;
@@ -38,11 +38,11 @@ List<TimeSeriesSales> interpolateBetween(TimeSeriesSales p1, TimeSeriesSales p2,
 
   for (DateTime date = p2.time;
       date.isBefore(p3.time);
-      date = date.add(Duration(days: 1))) {
+      date = date.add(Duration(minutes: 5))) {
     var t = date.millisecondsSinceEpoch.toDouble();
     var dt = t - dStart;
     var height = catmullRom(p1d, p2d, p3d, p4d, dt / range);
-    print([dStart, dEnd, date.day, height]);
+//    print([dStart, dEnd, date.day, height]);
     var interPoint = TimeSeriesSales(date, height.round());
     data.add(interPoint);
   }
