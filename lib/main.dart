@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:charts_flutter/flutter.dart' as charts;
 import 'package:flutter/material.dart';
+import 'package:flutterglucoseinsulin/EntryPage.dart';
 import 'package:jiffy/jiffy.dart';
 import 'package:json_store/json_store.dart';
 
@@ -50,6 +51,10 @@ class _MyHomePageState extends State<MyHomePage> {
 
   loadFromStorage() async {
     JsonStore jsonStore = JsonStore();
+
+//    var keys = await jsonStore.getListLike('%');
+//    print(['keys', keys]);
+
 //    DateTime today = this.today();
     String ymd = this.ymd();
 //    print(['ymd', ymd]);
@@ -58,6 +63,11 @@ class _MyHomePageState extends State<MyHomePage> {
     if (json != null) {
       setState(() {
         this.day = DayData.fromJson(json);
+      });
+    } else {
+      // default
+      setState(() {
+        this.day = new DayData(this.today(), []);
       });
     }
   }
@@ -115,7 +125,18 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => {},
+        onPressed: () async {
+          Ate newVal = await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => EntryPage()),
+          );
+          if (newVal != null) {
+            this.setState(() {
+              this.day.intake.add(newVal);
+              this.saveDay();
+            });
+          }
+        },
         tooltip: 'Increment',
         child: Icon(Icons.add),
       ), // This trailing comma makes auto-formatting nicer for build methods.
@@ -139,11 +160,32 @@ class _MyHomePageState extends State<MyHomePage> {
                 ? Text(
                     'Break: ${(item.hoursSince(prev).inMinutes / 60).toStringAsFixed(2)}h')
                 : null,
+            onTap: () async {
+              Ate newVal = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => EntryPage(
+                          edit: item,
+                        )),
+              );
+              if (newVal == null) {
+                this.setState(() {
+                  this.day.intake.remove(item);
+                  this.saveDay();
+                });
+              } else {
+                this.setState(() {
+                  this.day.intake[index] = newVal;
+                  this.saveDay();
+                });
+              }
+            },
           );
         });
   }
 
   List<TimeSeriesSales> createChartData() {
+    bool debug = false;
     List<TimeSeriesSales> data = [];
     if (this.day == null) {
       return data;
@@ -155,33 +197,37 @@ class _MyHomePageState extends State<MyHomePage> {
     for (var ate in this.day.intake) {
       var ateTime = new DateTime(this.day.date.year, this.day.date.month,
           this.day.date.day, ate.hour, ate.minute);
-      print('ate at ${ateTime.hour}:${ateTime.minute}');
+      if (debug) print('ate at ${ateTime.hour}:${ateTime.minute}');
       if (ate == this.day.intake.first) {
-        print('  first, add "0" 5 minutes before');
+        if (debug) print('  first, add "0" 5 minutes before');
         data.add(new TimeSeriesSales(
             Jiffy(ateTime).subtract(duration: fiveMinutes), 0));
       }
       if (i <= this.day.intake.length - 2) {
-        print('  not last');
+        if (debug) print('  not last');
         var next = this.day.intake[i + 1];
         var timeTillNext = next.dateTime.difference(ate.dateTime);
         if (timeTillNext.compareTo(this.fiveHours) < 0) {
-          print(['  timeTillNext is < than 5h', timeTillNext.toString()]);
+          if (debug)
+            print(['  timeTillNext is < than 5h', timeTillNext.toString()]);
           var partialTime = timeTillNext.inSeconds / this.fiveHours.inSeconds;
           var height = (ate.amount * partialTime * 100).round();
-          print(['  partialTime', partialTime, height]);
+          if (debug) print(['  partialTime', partialTime, height]);
           data.add(new TimeSeriesSales(
               Jiffy(next.dateTime).subtract(duration: fiveMinutes), height));
         } else {
           var ateTimePlus5 = ateTime.add(this.fiveHours);
-          print([
-            '  next food in > than 5h, add "0" at',
-            ateTimePlus5.hour.toString() + ':' + ateTimePlus5.minute.toString()
-          ]);
+          if (debug)
+            print([
+              '  next food in > than 5h, add "0" at',
+              ateTimePlus5.hour.toString() +
+                  ':' +
+                  ateTimePlus5.minute.toString()
+            ]);
           data.add(new TimeSeriesSales(ateTimePlus5, 0));
         }
       } else {
-        print(['  no next', i]);
+        if (debug) print(['  no next', i]);
       }
 
       // main time + 25 min (not so steep)
@@ -190,13 +236,14 @@ class _MyHomePageState extends State<MyHomePage> {
           ateTime.add(twentyFiveMinutes), (ate.amount * 100).round()));
       i++;
     }
-    data.add(new TimeSeriesSales(Jiffy(this.day.date).endOf(Units.DAY), 0));
+//    data.add(new TimeSeriesSales(Jiffy(this.day.date).endOf(Units.DAY), 0));
 
     data.sort(
         (TimeSeriesSales a, TimeSeriesSales b) => a.time.compareTo(b.time));
-    print(data
-        .map((el) => Jiffy(el.time).Hm + ' [' + el.sales.toString() + ']')
-        .toList());
+    if (debug)
+      print(data
+          .map((el) => Jiffy(el.time).Hm + ' [' + el.sales.toString() + ']')
+          .toList());
     data = smoothSeries(data);
     return data;
   }
