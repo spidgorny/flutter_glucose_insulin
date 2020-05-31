@@ -1,14 +1,12 @@
 import 'dart:async';
 
-import 'package:charts_flutter/flutter.dart' as charts;
 import 'package:flutter/material.dart';
+import 'package:flutterglucoseinsulin/ChartAbove.dart';
 import 'package:flutterglucoseinsulin/EntryPage.dart';
 import 'package:jiffy/jiffy.dart';
 import 'package:json_store/json_store.dart';
 
 import 'DayData.dart';
-import 'SimpleTimeSeriesChart.dart';
-import 'Smooth.dart';
 
 void main() {
   runApp(MyApp());
@@ -37,7 +35,6 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  final fiveHours = Duration(hours: 3);
   DayData day;
 
   @override
@@ -82,9 +79,9 @@ class _MyHomePageState extends State<MyHomePage> {
     DateTime today = this.today();
 //    print(['today', today]);
     this.day = DayData(today, [
-      new Ate("10:30", 0.7),
-      new Ate("12:30", 1),
-      new Ate("17:00", 1),
+      new Ate(TimeOfDay(hour: 10, minute: 30), 0.7),
+      new Ate(TimeOfDay(hour: 12, minute: 30), 1),
+      new Ate(TimeOfDay(hour: 17, minute: 00), 1),
     ]);
   }
 
@@ -111,12 +108,7 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Expanded(
-                child: SimpleTimeSeriesChart(
-              this.createChartSeries(),
-              // Disable animations for image tests.
-              animate: true,
-            )),
+            Expanded(child: ChartAbove(this.day)),
             Expanded(
                 child: this.day != null
                     ? renderMealList()
@@ -147,12 +139,12 @@ class _MyHomePageState extends State<MyHomePage> {
     return ListView.builder(
         itemCount: day.intake.length,
         itemBuilder: (context, index) {
-          final item = day.intake[index];
+          final Ate item = day.intake[index];
           var prev = index > 0 ? day.intake[index - 1] : null;
 
           return ListTile(
             title: Text(
-              item.time,
+              item.sTime,
               style: Theme.of(context).textTheme.headline5,
             ),
             subtitle: Text('Meal size: ${item.amount}'),
@@ -182,94 +174,5 @@ class _MyHomePageState extends State<MyHomePage> {
             },
           );
         });
-  }
-
-  List<TimeSeriesSales> createChartData() {
-    bool debug = false;
-    List<TimeSeriesSales> data = [];
-    if (this.day == null) {
-      return data;
-    }
-    var today = Jiffy(this.day.date).startOf(Units.DAY);
-    data.add(new TimeSeriesSales(today, 0)); // start day sleeping and hungry
-    var fiveMinutes = Duration(minutes: 5);
-    int i = 0;
-    for (var ate in this.day.intake) {
-      var ateTime = new DateTime(this.day.date.year, this.day.date.month,
-          this.day.date.day, ate.hour, ate.minute);
-      if (debug) print('ate at ${ateTime.hour}:${ateTime.minute}');
-      if (ate == this.day.intake.first) {
-        if (debug) print('  first, add "0" 5 minutes before');
-        data.add(new TimeSeriesSales(
-            Jiffy(ateTime).subtract(duration: fiveMinutes), 0));
-      }
-      if (i <= this.day.intake.length - 2) {
-        if (debug) print('  not last');
-        var next = this.day.intake[i + 1];
-        var timeTillNext = next.dateTime.difference(ate.dateTime);
-        if (timeTillNext.compareTo(this.fiveHours) < 0) {
-          if (debug)
-            print(['  timeTillNext is < than 5h', timeTillNext.toString()]);
-          var partialTime = timeTillNext.inSeconds / this.fiveHours.inSeconds;
-          var height = (ate.amount * partialTime * 100).round();
-          if (debug) print(['  partialTime', partialTime, height]);
-          data.add(new TimeSeriesSales(
-              Jiffy(next.dateTime).subtract(duration: fiveMinutes), height));
-        } else {
-          var ateTimePlus5 = ateTime.add(this.fiveHours);
-          if (debug)
-            print([
-              '  next food in > than 5h, add "0" at',
-              ateTimePlus5.hour.toString() +
-                  ':' +
-                  ateTimePlus5.minute.toString()
-            ]);
-          data.add(new TimeSeriesSales(ateTimePlus5, 0));
-        }
-      } else {
-        if (debug) print(['  no next', i]);
-      }
-
-      // main time + 25 min (not so steep)
-      var twentyFiveMinutes = Duration(minutes: 25);
-      data.add(new TimeSeriesSales(
-          ateTime.add(twentyFiveMinutes), (ate.amount * 100).round()));
-      i++;
-    }
-//    data.add(new TimeSeriesSales(Jiffy(this.day.date).endOf(Units.DAY), 0));
-
-    data.sort(
-        (TimeSeriesSales a, TimeSeriesSales b) => a.time.compareTo(b.time));
-    if (debug)
-      print(data
-          .map((el) => Jiffy(el.time).Hm + ' [' + el.sales.toString() + ']')
-          .toList());
-    data = smoothSeries(data);
-    return data;
-  }
-
-  List<charts.Series<TimeSeriesSales, DateTime>> createChartSeries() {
-    /////
-    final myTabletData = [
-      new TimeSeriesSales(Jiffy().dateTime, -50),
-      new TimeSeriesSales(Jiffy().add(duration: Duration(minutes: 1)), 120),
-    ];
-
-    return [
-      new charts.Series<TimeSeriesSales, DateTime>(
-        id: 'Sales',
-        colorFn: (_, __) => charts.MaterialPalette.blue.shadeDefault,
-        domainFn: (TimeSeriesSales sales, _) => sales.time,
-        measureFn: (TimeSeriesSales sales, _) => sales.sales,
-        data: this.createChartData(),
-      ),
-      new charts.Series<TimeSeriesSales, DateTime>(
-        id: 'Tablet',
-        colorFn: (_, __) => charts.MaterialPalette.green.shadeDefault,
-        domainFn: (TimeSeriesSales sales, _) => sales.time,
-        measureFn: (TimeSeriesSales sales, _) => sales.sales,
-        data: myTabletData,
-      ),
-    ];
   }
 }

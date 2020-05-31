@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutterglucoseinsulin/DayData.dart';
 import 'package:jiffy/jiffy.dart';
 
@@ -5,7 +6,7 @@ void testDayData() {
   DateTime today = Jiffy().startOf(Units.DAY);
   print(['today', today]);
   var day = DayData(today, [
-    new Ate("18:30", 1),
+    new Ate(TimeOfDay(hour: 18, minute: 30), 1),
   ]);
   print(['day', day]);
   var json = day.toJson();

@@ -1,12 +1,16 @@
+import 'package:flutter/material.dart';
 import 'package:jiffy/jiffy.dart';
 
 class Ate {
-  String time;
+  TimeOfDay time;
   double amount;
 
   Ate(this.time, this.amount);
   Ate.fromJson(Map<String, dynamic> json) {
-    this.time = json['time'];
+    List<String> parts = json['time'].split(':');
+    int hh = int.parse(parts[0]);
+    int mm = int.parse(parts[1]);
+    this.time = TimeOfDay(hour: hh, minute: mm);
     this.amount = json['amount'];
   }
 
@@ -14,18 +18,23 @@ class Ate {
       .startOf(Units.DAY)
       .add(Duration(hours: this.hour, minutes: this.minute));
 
+  get sTime =>
+      time.hour.toString().padLeft(2, '0') +
+      ':' +
+      time.minute.toString().padLeft(2, '0');
+
   Map<String, dynamic> toJson() => {
         '_type': 'Ate',
-        'time': time,
+        'time': this.sTime,
         'amount': amount,
       };
 
   int get hour {
-    return int.parse(this.time.split(':')[0]);
+    return this.time.hour;
   }
 
   int get minute {
-    return int.parse(this.time.split(':')[1]);
+    return this.time.minute;
   }
 
   Duration hoursSince(Ate prev) {

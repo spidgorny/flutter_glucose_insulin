@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_xlider/flutter_xlider.dart';
-import 'package:jiffy/jiffy.dart';
 
 import 'DayData.dart';
 
@@ -29,7 +28,9 @@ class _EntryPageState extends State<EntryPage> {
     2.0: 'i will burst'
   };
 
-  var time = Jiffy().Hm;
+  var time = TimeOfDay.now();
+
+  TextEditingController _timeController = new TextEditingController();
 
   void initState() {
     super.initState();
@@ -41,6 +42,7 @@ class _EntryPageState extends State<EntryPage> {
 
   @override
   Widget build(BuildContext context) {
+    _timeController.text = this.time.toString();
     return Scaffold(
         appBar: AppBar(
           title: Text("How much did you eat?"),
@@ -57,11 +59,22 @@ class _EntryPageState extends State<EntryPage> {
             padding: EdgeInsets.all(16),
             child: Column(children: [
               TextFormField(
+                controller: _timeController,
                 decoration: InputDecoration(
                   labelText: 'Time:',
                 ),
-                initialValue: this.time,
                 readOnly: true,
+                onTap: () async {
+                  var selectedTime = await showTimePicker(
+                    initialTime: this.time,
+                    context: context,
+                  );
+                  if (selectedTime != null) {
+                    setState(() {
+                      this.time = selectedTime;
+                    });
+                  }
+                },
               ),
               Expanded(
                   child: FlutterSlider(
