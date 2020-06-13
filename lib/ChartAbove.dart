@@ -114,13 +114,6 @@ class ChartAbove extends StatelessWidget {
       new TimeSeriesSales(Jiffy().add(duration: Duration(minutes: 1)), 120),
     ];
 
-    final myComments =
-        this.day.intake.where((element) => element is CommentEntry).map((el) {
-      var ateTime = new DateTime(this.day.date.year, this.day.date.month,
-          this.day.date.day, el.hour, el.minute);
-      return new TimeSeriesSales(ateTime, 0);
-    }).toList();
-
     var series = [
       new charts.Series<TimeSeriesSales, DateTime>(
         id: 'Glucose',
@@ -137,7 +130,14 @@ class ChartAbove extends StatelessWidget {
         data: myTabletData,
       ),
     ];
-    myComments.map((TimeSeriesSales el) {
+
+    var comments = this.day.intake.where((element) => element is CommentEntry);
+    print(['comments', comments.length]);
+    comments.map((Ate el) {
+      var ateTime = new DateTime(this.day.date.year, this.day.date.month,
+          this.day.date.day, el.hour, el.minute);
+      return new TimeSeriesSales(ateTime, 0); // 0 - height
+    }).map((TimeSeriesSales el) {
       var plus = new charts.Series<TimeSeriesSales, DateTime>(
         id: 'Comment#' + el.time.hour.toString(),
         colorFn: (_, __) => charts.MaterialPalette.red.shadeDefault,
@@ -147,7 +147,8 @@ class ChartAbove extends StatelessWidget {
         strokeWidthPxFn: (TimeSeriesSales sales, _) => 5,
       );
       series.add(plus);
-    });
+    }).toList();
+    print(['series', series.length]);
     return series;
   }
 }
