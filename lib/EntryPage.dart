@@ -6,15 +6,16 @@ import 'DayData.dart';
 
 class EntryPage extends StatefulWidget {
   final Ate edit;
+  final bool withMealSize;
 
-  EntryPage({this.edit});
+  EntryPage({this.edit, this.withMealSize = false});
 
   @override
   _EntryPageState createState() => _EntryPageState();
 }
 
 class _EntryPageState extends State<EntryPage> {
-  double _lowerValue = 1;
+  double sliderValue = 1;
 //  double _upperValue;
 
   Map<double, String> options = {
@@ -29,20 +30,24 @@ class _EntryPageState extends State<EntryPage> {
   };
 
   var time = TimeOfDay.now();
+  String comment = '';
 
   TextEditingController _timeController = new TextEditingController();
+  TextEditingController _commentController = new TextEditingController();
 
   void initState() {
     super.initState();
     if (widget.edit != null) {
-      this._lowerValue = widget.edit.amount;
       this.time = widget.edit.time;
+      this.sliderValue = widget.edit.amount;
+      this.comment = widget.edit.comment;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     _timeController.text = this.time.toString();
+    _commentController.text = this.comment;
     return Scaffold(
         appBar: AppBar(
           title: Text("How much did you eat?"),
@@ -76,38 +81,60 @@ class _EntryPageState extends State<EntryPage> {
                   }
                 },
               ),
-              Expanded(
-                  child: FlutterSlider(
-                axis: Axis.vertical,
-                rtl: true,
-                values: [this._lowerValue],
-                step: FlutterSliderStep(step: 0.1),
-                max: 2.0,
-                min: 0.25,
-                tooltip: FlutterSliderTooltip(
-                  format: (String str) {
-                    var value = num.parse(str);
-                    var rounded = (value * 4).round() / 4;
-                    return this.options[rounded];
-                  },
-                  textStyle: TextStyle(fontSize: 17, color: Colors.white),
-                  boxStyle: FlutterSliderTooltipBox(
-                      decoration: BoxDecoration(
-                          color: Colors.redAccent.withOpacity(0.7))),
-                  positionOffset:
-                      FlutterSliderTooltipPositionOffset(left: -200),
-                  alwaysShowTooltip: true,
-                ),
-                onDragging: (handlerIndex, lowerValue, upperValue) {
-                  _lowerValue = lowerValue;
+              widget.withMealSize
+                  ? Expanded(
+                      child: FlutterSlider(
+                      axis: Axis.vertical,
+                      rtl: true,
+                      values: [this.sliderValue],
+                      step: FlutterSliderStep(step: 0.1),
+                      max: 2.0,
+                      min: 0.25,
+                      tooltip: FlutterSliderTooltip(
+                        format: (String str) {
+                          var value = num.parse(str);
+                          var rounded = (value * 4).round() / 4;
+                          return this.options[rounded];
+                        },
+                        textStyle: TextStyle(fontSize: 17, color: Colors.white),
+                        boxStyle: FlutterSliderTooltipBox(
+                            decoration: BoxDecoration(
+                                color: Colors.redAccent.withOpacity(0.7))),
+                        positionOffset:
+                            FlutterSliderTooltipPositionOffset(left: -200),
+                        alwaysShowTooltip: true,
+                      ),
+                      onDragging: (handlerIndex, lowerValue, upperValue) {
+                        sliderValue = lowerValue;
 //            _upperValue = upperValue;
-                  setState(() {});
+                        setState(() {});
+                      },
+                    ))
+                  : Container(),
+              Expanded(
+                  child: TextField(
+                maxLines: null,
+                keyboardType: TextInputType.multiline,
+                decoration: InputDecoration(
+//                    border: InputBorder.none,
+                    hintText: 'Comment'),
+                controller: _commentController,
+                onChanged: (String newVal) {
+                  this.comment = newVal;
                 },
+                onEditingComplete: () {},
               )),
               RaisedButton(
                 child: Text('OK'),
                 onPressed: () {
-                  Navigator.pop(context, new Ate(this.time, this._lowerValue));
+                  var result;
+                  if (widget.withMealSize) {
+                    result = new Ate(this.time, this.sliderValue);
+                  } else {
+                    result =
+                        new CommentEntry(this.time, 0, comment: this.comment);
+                  }
+                  Navigator.pop(context, result);
                 },
               )
             ])));

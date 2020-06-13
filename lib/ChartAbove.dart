@@ -14,21 +14,25 @@ class ChartAbove extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SimpleTimeSeriesChart(
-      this.createChartSeries(),
-      // Disable animations for image tests.
-      animate: true,
-    );
+    return this.day == null
+        ? Container()
+        : SimpleTimeSeriesChart(
+            this.createChartSeries(),
+            // Disable animations for image tests.
+            animate: true,
+          );
   }
 
   List<TimeSeriesSales> createChartData() {
     bool debug = false;
+
     List<TimeSeriesSales> data = [];
-    if (this.day == null) {
-      return data;
-    }
     var today = Jiffy(this.day.date).startOf(Units.DAY);
     data.add(new TimeSeriesSales(today, 0)); // start day sleeping and hungry
+    if (this.day == null || this.day.intake.length == 0) {
+      return data;
+    }
+
     var fiveMinutes = Duration(minutes: 5);
     int i = 0;
     for (var ate in this.day.intake) {

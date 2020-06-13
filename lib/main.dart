@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:fab_circular_menu/fab_circular_menu.dart';
 import 'package:flutter/material.dart';
 import 'package:flutterglucoseinsulin/ChartAbove.dart';
 import 'package:flutterglucoseinsulin/EntryPage.dart';
@@ -35,7 +36,9 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  DateTime date = DateTime.now();
   DayData day;
+  final GlobalKey<FabCircularMenuState> fabKey = GlobalKey();
 
   @override
   void initState() {
@@ -89,12 +92,18 @@ class _MyHomePageState extends State<MyHomePage> {
     JsonStore jsonStore = JsonStore();
 //    DateTime today = this.today();
     String ymd = this.ymd();
-    print(['ymd', this.day.toJson()]);
-    await jsonStore.setItem(ymd, this.day.toJson());
+    print(['ymd', ymd, this.day.toJson()]);
+    try {
+      await jsonStore.setItem(ymd, this.day.toJson());
+    } catch (e) {
+      if (e is StorageException) {
+        print(e.message);
+      }
+    }
   }
 
   DateTime today() {
-    DateTime today = Jiffy().startOf(Units.DAY);
+    DateTime today = Jiffy(this.date).startOf(Units.DAY);
     return today;
   }
 
@@ -103,6 +112,38 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
+        actions: <Widget>[
+          IconButton(
+            icon: Icon(Icons.chevron_left),
+            onPressed: () {
+              setState(() {
+                this.date = this.date.subtract(Duration(days: 1));
+              });
+              this.loadFromStorage();
+            },
+          ),
+          IconButton(
+            icon: Icon(Icons.today),
+            onPressed: () {
+              setState(() {
+                this.date = DateTime.now();
+              });
+              this.loadFromStorage();
+            },
+          ),
+          IconButton(
+            icon: Icon(Icons.chevron_right),
+            onPressed: () {
+              if (this.today().isAfter(DateTime.now())) {
+                return;
+              }
+              setState(() {
+                this.date = this.date.add(Duration(days: 1));
+              });
+              this.loadFromStorage();
+            },
+          )
+        ],
       ),
       body: Center(
         child: Column(
@@ -116,21 +157,41 @@ class _MyHomePageState extends State<MyHomePage> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          Ate newVal = await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => EntryPage()),
-          );
-          if (newVal != null) {
-            this.setState(() {
-              this.day.intake.add(newVal);
-              this.saveDay();
-            });
-          }
-        },
-        tooltip: 'Increment',
-        child: Icon(Icons.add),
+      floatingActionButton: FabCircularMenu(
+        key: this.fabKey,
+        children: <Widget>[
+          IconButton(
+              icon: Icon(Icons.add_comment),
+              onPressed: () async {
+                CommentEntry newVal = await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => EntryPage()),
+                );
+                if (newVal != null) {
+                  this.setState(() {
+                    this.day.intake.add(newVal);
+                    this.saveDay();
+                  });
+                }
+                fabKey.currentState.close();
+              }),
+          IconButton(
+            icon: Icon(Icons.fastfood),
+            onPressed: () async {
+              Ate newVal = await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => EntryPage()),
+              );
+              if (newVal != null) {
+                this.setState(() {
+                  this.day.intake.add(newVal);
+                  this.saveDay();
+                });
+              }
+              fabKey.currentState.close();
+            },
+          ),
+        ],
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
