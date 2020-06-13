@@ -8,6 +8,8 @@ class EntryPage extends StatefulWidget {
   final Ate edit;
   final bool withMealSize;
 
+  static String deleteCode = '*DEL*ME*';
+
   EntryPage({this.edit, this.withMealSize = false});
 
   @override
@@ -55,7 +57,10 @@ class _EntryPageState extends State<EntryPage> {
             IconButton(
               icon: Icon(Icons.delete),
               onPressed: () {
-                Navigator.pop(context);
+                Navigator.pop(
+                    context,
+                    Ate(this.time, this.sliderValue,
+                        comment: EntryPage.deleteCode));
               },
             )
           ],

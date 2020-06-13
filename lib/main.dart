@@ -149,8 +149,12 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Expanded(child: ChartAbove(this.day)),
             Expanded(
+              child: ChartAbove(this.day),
+              flex: 1,
+            ),
+            Expanded(
+                flex: 2,
                 child: this.day != null
                     ? renderMealList()
                     : Center(child: CircularProgressIndicator()))
@@ -161,11 +165,17 @@ class _MyHomePageState extends State<MyHomePage> {
         key: this.fabKey,
         children: <Widget>[
           IconButton(
-              icon: Icon(Icons.add_comment),
+              icon: Icon(
+                Icons.add_comment,
+                color: Colors.red.shade300,
+              ),
               onPressed: () async {
                 CommentEntry newVal = await Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => EntryPage()),
+                  MaterialPageRoute(
+                      builder: (context) => EntryPage(
+                            withMealSize: false,
+                          )),
                 );
                 if (newVal != null) {
                   this.setState(() {
@@ -176,11 +186,17 @@ class _MyHomePageState extends State<MyHomePage> {
                 fabKey.currentState.close();
               }),
           IconButton(
-            icon: Icon(Icons.fastfood),
+            icon: Icon(
+              Icons.fastfood,
+              color: Colors.white,
+            ),
             onPressed: () async {
               Ate newVal = await Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => EntryPage()),
+                MaterialPageRoute(
+                    builder: (context) => EntryPage(
+                          withMealSize: true,
+                        )),
               );
               if (newVal != null) {
                 this.setState(() {
@@ -197,20 +213,32 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   ListView renderMealList() {
-    return ListView.builder(
+    day.intake
+        .sort((Ate a, Ate b) => a.time.toString().compareTo(b.time.toString()));
+    return ListView.separated(
+        separatorBuilder: (context, index) => Divider(
+              color: Colors.grey,
+            ),
         itemCount: day.intake.length,
         itemBuilder: (context, index) {
           final Ate item = day.intake[index];
           var prev = index > 0 ? day.intake[index - 1] : null;
 
           return ListTile(
+            leading: item is CommentEntry
+                ? Icon(Icons.comment)
+                : Icon(Icons.fastfood),
             title: Text(
               item.sTime,
-              style: Theme.of(context).textTheme.headline5,
+              style: Theme.of(context).textTheme.headline6,
             ),
-            subtitle: Text('Meal size: ${item.amount}'),
+            subtitle: item.comment != null && item.comment != ''
+                ? Text(item.comment ?? '')
+                : null,
             trailing: item.hoursSince(prev) != null
-                ? Text(
+                ? Text((!(item is CommentEntry)
+                        ? 'Meal size: ${item.amount}' + "\n"
+                        : '') +
                     'Break: ${(item.hoursSince(prev).inMinutes / 60).toStringAsFixed(2)}h')
                 : null,
             onTap: () async {
@@ -222,6 +250,9 @@ class _MyHomePageState extends State<MyHomePage> {
                         )),
               );
               if (newVal == null) {
+                return;
+              }
+              if (newVal.comment == EntryPage.deleteCode) {
                 this.setState(() {
                   this.day.intake.remove(item);
                   this.saveDay();

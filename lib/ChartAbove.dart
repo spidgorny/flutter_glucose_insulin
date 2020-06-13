@@ -14,22 +14,24 @@ class ChartAbove extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    var onlyAte = this.day.intake.where((element) => element is Ate).toList();
+    var chartData = this.createChartData(onlyAte);
     return this.day == null
         ? Container()
         : SimpleTimeSeriesChart(
-            this.createChartSeries(),
+            this.createChartSeries(chartData),
             // Disable animations for image tests.
             animate: true,
           );
   }
 
-  List<TimeSeriesSales> createChartData() {
+  List<TimeSeriesSales> createChartData(List<Ate> intake) {
     bool debug = false;
 
     List<TimeSeriesSales> data = [];
     var today = Jiffy(this.day.date).startOf(Units.DAY);
     data.add(new TimeSeriesSales(today, 0)); // start day sleeping and hungry
-    if (this.day == null || this.day.intake.length == 0) {
+    if (this.day == null || intake.length == 0) {
       return data;
     }
 
@@ -104,28 +106,48 @@ class ChartAbove extends StatelessWidget {
     }
   }
 
-  List<charts.Series<TimeSeriesSales, DateTime>> createChartSeries() {
+  List<charts.Series<TimeSeriesSales, DateTime>> createChartSeries(
+      List<TimeSeriesSales> chartData) {
     /////
     final myTabletData = [
       new TimeSeriesSales(Jiffy().dateTime, -50),
       new TimeSeriesSales(Jiffy().add(duration: Duration(minutes: 1)), 120),
     ];
 
-    return [
+    final myComments =
+        this.day.intake.where((element) => element is CommentEntry).map((el) {
+      var ateTime = new DateTime(this.day.date.year, this.day.date.month,
+          this.day.date.day, el.hour, el.minute);
+      return new TimeSeriesSales(ateTime, 0);
+    }).toList();
+
+    var series = [
       new charts.Series<TimeSeriesSales, DateTime>(
-        id: 'Sales',
+        id: 'Glucose',
         colorFn: (_, __) => charts.MaterialPalette.blue.shadeDefault,
         domainFn: (TimeSeriesSales sales, _) => sales.time,
         measureFn: (TimeSeriesSales sales, _) => sales.sales,
-        data: this.createChartData(),
+        data: chartData,
       ),
       new charts.Series<TimeSeriesSales, DateTime>(
-        id: 'Tablet',
+        id: 'Today',
         colorFn: (_, __) => charts.MaterialPalette.green.shadeDefault,
         domainFn: (TimeSeriesSales sales, _) => sales.time,
         measureFn: (TimeSeriesSales sales, _) => sales.sales,
         data: myTabletData,
       ),
     ];
+    myComments.map((TimeSeriesSales el) {
+      var plus = new charts.Series<TimeSeriesSales, DateTime>(
+        id: 'Comment#' + el.time.hour.toString(),
+        colorFn: (_, __) => charts.MaterialPalette.red.shadeDefault,
+        domainFn: (TimeSeriesSales sales, _) => sales.time,
+        measureFn: (TimeSeriesSales sales, _) => sales.sales,
+        data: [el],
+        strokeWidthPxFn: (TimeSeriesSales sales, _) => 5,
+      );
+      series.add(plus);
+    });
+    return series;
   }
 }
