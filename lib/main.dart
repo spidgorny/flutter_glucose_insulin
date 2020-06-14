@@ -72,11 +72,6 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  String ymd() {
-    String ymd = Jiffy(this.today()).format('y-MM-dd');
-    return ymd;
-  }
-
   /// @deprecated
   void sampleData() {
     DateTime today = this.today();
@@ -88,7 +83,7 @@ class _MyHomePageState extends State<MyHomePage> {
     ]);
   }
 
-  saveDay() async {
+  void saveDay() async {
     JsonStore jsonStore = JsonStore();
 //    DateTime today = this.today();
     String ymd = this.ymd();
@@ -105,6 +100,16 @@ class _MyHomePageState extends State<MyHomePage> {
   DateTime today() {
     DateTime today = Jiffy(this.date).startOf(Units.DAY);
     return today;
+  }
+
+  String ymd() {
+    String ymd = Jiffy(this.today()).format('y-MM-dd');
+    return ymd;
+  }
+
+  get isToday {
+    print(['isToday', this.ymd(), Jiffy().format('y-MM-dd')]);
+    return this.ymd() == Jiffy().format('y-MM-dd');
   }
 
   @override
@@ -133,15 +138,17 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           IconButton(
             icon: Icon(Icons.chevron_right),
-            onPressed: () {
-              if (this.today().isAfter(DateTime.now())) {
-                return;
-              }
-              setState(() {
-                this.date = this.date.add(Duration(days: 1));
-              });
-              this.loadFromStorage();
-            },
+            onPressed: this.isToday
+                ? null
+                : () {
+                    if (this.isToday) {
+                      return;
+                    }
+                    setState(() {
+                      this.date = this.date.add(Duration(days: 1));
+                    });
+                    this.loadFromStorage();
+                  },
           )
         ],
       ),

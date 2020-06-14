@@ -95,6 +95,9 @@ class DayData {
         .toList());
   }
 
+  List<CommentEntry> get onlyComments => List<CommentEntry>.from(
+      this.intake.where((element) => element is CommentEntry));
+
   Map<String, dynamic> toJson() => {
         'date': this.date.toIso8601String(),
         'intake': intake.map((ate) => ate.toJson()).toList(),
@@ -102,7 +105,7 @@ class DayData {
 
   List<Ate> get onlyAte {
     var onlyAte = List<Ate>.from(this.intake.where((DayEntry element) {
-      print(['where', element is Ate]);
+//      print(['where', element is Ate]);
       return element is Ate;
     }));
     return onlyAte;

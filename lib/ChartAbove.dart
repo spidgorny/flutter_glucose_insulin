@@ -132,9 +132,7 @@ class ChartAbove extends StatelessWidget {
       series.add(today);
     }
 
-    var comments = this.day.intake.where((element) => element is CommentEntry);
-//    print(['comments', comments.length]);
-    comments.map((DayEntry el) {
+    this.day.onlyComments.map((DayEntry el) {
       var ateTime = new DateTime(this.day.date.year, this.day.date.month,
           this.day.date.day, el.hour, el.minute);
       return new TimeSeriesSales(ateTime, 0); // 0 - height
