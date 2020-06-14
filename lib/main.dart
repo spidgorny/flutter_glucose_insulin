@@ -213,15 +213,15 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   ListView renderMealList() {
-    day.intake
-        .sort((Ate a, Ate b) => a.time.toString().compareTo(b.time.toString()));
+    day.intake.sort((DayEntry a, DayEntry b) =>
+        a.time.toString().compareTo(b.time.toString()));
     return ListView.separated(
         separatorBuilder: (context, index) => Divider(
               color: Colors.grey,
             ),
         itemCount: day.intake.length,
         itemBuilder: (context, index) {
-          final Ate item = day.intake[index];
+          final DayEntry item = day.intake[index];
           var prev = index > 0 ? day.intake[index - 1] : null;
 
           return ListTile(
@@ -236,13 +236,11 @@ class _MyHomePageState extends State<MyHomePage> {
                 ? Text(item.comment ?? '')
                 : null,
             trailing: item.hoursSince(prev) != null
-                ? Text((!(item is CommentEntry)
-                        ? 'Meal size: ${item.amount}' + "\n"
-                        : '') +
+                ? Text((item is Ate ? 'Meal size: ${item.amount}' + "\n" : '') +
                     'Break: ${(item.hoursSince(prev).inMinutes / 60).toStringAsFixed(2)}h')
                 : null,
             onTap: () async {
-              Ate newVal = await Navigator.push(
+              DayEntry newVal = await Navigator.push(
                 context,
                 MaterialPageRoute(
                     builder: (context) => EntryPage(

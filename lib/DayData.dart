@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:jiffy/jiffy.dart';
 
-class Ate {
+class DayEntry {
   TimeOfDay time;
   double amount;
   String comment;
 
-  Ate(this.time, this.amount, {this.comment});
+  DayEntry(this.time, this.amount, {this.comment});
 
-  Ate.fromJson(Map<String, dynamic> json) {
+  DayEntry.fromJson(Map<String, dynamic> json) {
     List<String> parts = json['time'].split(':');
     int hh = int.parse(parts[0]);
     int mm = int.parse(parts[1]);
@@ -41,7 +41,7 @@ class Ate {
     return this.time.minute;
   }
 
-  Duration hoursSince(Ate prev) {
+  Duration hoursSince(DayEntry prev) {
     if (null == prev) {
       return null;
     }
@@ -49,25 +49,62 @@ class Ate {
   }
 }
 
-class CommentEntry extends Ate {
+class Ate extends DayEntry {
+  @override
+  Ate(time, amount, {comment}) : super(time, amount, comment: comment);
+
+  Ate.fromJson(Map<String, dynamic> json) : super(TimeOfDay.now(), 0.0) {
+    List<String> parts = json['time'].split(':');
+    int hh = int.parse(parts[0]);
+    int mm = int.parse(parts[1]);
+    this.time = TimeOfDay(hour: hh, minute: mm);
+    this.amount = json['amount'];
+    this.comment = json['comment'];
+  }
+}
+
+class CommentEntry extends DayEntry {
   CommentEntry(TimeOfDay time, double amount, {comment})
       : super(time, amount, comment: comment);
+
+  CommentEntry.fromJson(Map<String, dynamic> json)
+      : super(TimeOfDay.now(), 0.0) {
+    List<String> parts = json['time'].split(':');
+    int hh = int.parse(parts[0]);
+    int mm = int.parse(parts[1]);
+    this.time = TimeOfDay(hour: hh, minute: mm);
+//    this.amount = json['amount'];
+    this.comment = json['comment'];
+  }
 }
 
 class DayData {
   DateTime date;
-  List<Ate> intake;
+  List<DayEntry> intake;
 
   DayData(this.date, this.intake);
+
   DayData.fromJson(Map<String, dynamic> json) {
     this.date = DateTime.parse(json['date']);
     var intakeSource = json['intake'];
     print(['intakeSource', intakeSource]);
-    this.intake =
-        List<Ate>.from(intakeSource.map((ate) => Ate.fromJson(ate)).toList());
+    this.intake = List<DayEntry>.from(intakeSource
+        .map((ate) => ate['_type'] == 'CommentEntry'
+            ? CommentEntry.fromJson(ate)
+            : Ate.fromJson(ate))
+        .toList());
   }
+
   Map<String, dynamic> toJson() => {
         'date': this.date.toIso8601String(),
         'intake': intake.map((ate) => ate.toJson()).toList(),
       };
+
+  List<Ate> get onlyAte {
+    var onlyAte = List<Ate>.from(this.intake.where((DayEntry element) {
+      print(['where', element is Ate]);
+      return element is Ate;
+    }));
+    return onlyAte;
+  }
 }

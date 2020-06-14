@@ -1,5 +1,6 @@
 import 'package:charts_flutter/flutter.dart' as charts;
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutterglucoseinsulin/DayData.dart';
 import 'package:jiffy/jiffy.dart';
 
@@ -7,26 +8,27 @@ import 'SimpleTimeSeriesChart.dart';
 import 'Smooth.dart';
 
 class ChartAbove extends StatelessWidget {
-  DayData day;
+  final DayData day;
   final fiveHours = Duration(hours: 3);
 
   ChartAbove(this.day);
 
   @override
   Widget build(BuildContext context) {
-    var onlyAte = this.day.intake.where((element) => element is Ate).toList();
-    var chartData = this.createChartData(onlyAte);
-    return this.day == null
-        ? Container()
-        : SimpleTimeSeriesChart(
-            this.createChartSeries(chartData),
-            // Disable animations for image tests.
-            animate: true,
-          );
+    if (this.day == null) {
+      return Center(child: CircularProgressIndicator());
+    }
+
+    var chartData = this.createChartData(this.day.onlyAte);
+    return SimpleTimeSeriesChart(
+      this.createChartSeries(chartData),
+      animate: true,
+    );
   }
 
   List<TimeSeriesSales> createChartData(List<Ate> intake) {
     bool debug = false;
+    print(['intake', intake]);
 
     List<TimeSeriesSales> data = [];
     var today = Jiffy(this.day.date).startOf(Units.DAY);
@@ -37,18 +39,18 @@ class ChartAbove extends StatelessWidget {
 
     var fiveMinutes = Duration(minutes: 5);
     int i = 0;
-    for (var ate in this.day.intake) {
+    for (var ate in intake) {
       var ateTime = new DateTime(this.day.date.year, this.day.date.month,
           this.day.date.day, ate.hour, ate.minute);
       if (debug) print('ate at ${ateTime.hour}:${ateTime.minute}');
-      if (ate == this.day.intake.first) {
+      if (ate == intake.first) {
         if (debug) print('  first, add "0" 5 minutes before');
         data.add(new TimeSeriesSales(
             Jiffy(ateTime).subtract(duration: fiveMinutes), 0));
       }
-      if (i <= this.day.intake.length - 2) {
+      if (i <= intake.length - 2) {
         if (debug) print('  not last');
-        var next = this.day.intake[i + 1];
+        var next = intake[i + 1];
         data.add(valueAfter5hOrUntil(ate, next.dateTime));
       } else {
         if (debug) print(['  no next', i]);
@@ -62,10 +64,8 @@ class ChartAbove extends StatelessWidget {
     }
 
     DateTime lastTime = this.day.date.add(Duration(
-        hours: this.day.intake.last.time.hour,
-        minutes: this.day.intake.last.time.minute));
-    data.add(valueAfter5hOrUntil(
-        this.day.intake.last, lastTime.add(this.fiveHours)));
+        hours: intake.last.time.hour, minutes: intake.last.time.minute));
+    data.add(valueAfter5hOrUntil(intake.last, lastTime.add(this.fiveHours)));
 
     // 0 by night
     data.add(new TimeSeriesSales(Jiffy(this.day.date).endOf(Units.DAY), 0));
@@ -108,12 +108,6 @@ class ChartAbove extends StatelessWidget {
 
   List<charts.Series<TimeSeriesSales, DateTime>> createChartSeries(
       List<TimeSeriesSales> chartData) {
-    /////
-    final myTabletData = [
-      new TimeSeriesSales(Jiffy().dateTime, -50),
-      new TimeSeriesSales(Jiffy().add(duration: Duration(minutes: 1)), 120),
-    ];
-
     var series = [
       new charts.Series<TimeSeriesSales, DateTime>(
         id: 'Glucose',
@@ -122,18 +116,25 @@ class ChartAbove extends StatelessWidget {
         measureFn: (TimeSeriesSales sales, _) => sales.sales,
         data: chartData,
       ),
-      new charts.Series<TimeSeriesSales, DateTime>(
+    ];
+    if (Jiffy(this.day.date).yMd == Jiffy().yMd) {
+      final myTabletData = [
+        new TimeSeriesSales(Jiffy().dateTime, -50),
+        new TimeSeriesSales(Jiffy().add(duration: Duration(minutes: 1)), 120),
+      ];
+      var today = new charts.Series<TimeSeriesSales, DateTime>(
         id: 'Today',
         colorFn: (_, __) => charts.MaterialPalette.green.shadeDefault,
         domainFn: (TimeSeriesSales sales, _) => sales.time,
         measureFn: (TimeSeriesSales sales, _) => sales.sales,
         data: myTabletData,
-      ),
-    ];
+      );
+      series.add(today);
+    }
 
     var comments = this.day.intake.where((element) => element is CommentEntry);
-    print(['comments', comments.length]);
-    comments.map((Ate el) {
+//    print(['comments', comments.length]);
+    comments.map((DayEntry el) {
       var ateTime = new DateTime(this.day.date.year, this.day.date.month,
           this.day.date.day, el.hour, el.minute);
       return new TimeSeriesSales(ateTime, 0); // 0 - height
