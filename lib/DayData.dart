@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:jiffy/jiffy.dart';
 
-class DayEntry {
+abstract class DayEntry {
   TimeOfDay time;
   double amount;
   String comment;
 
-  DayEntry(this.time, this.amount, {this.comment});
+  DayEntry(this.time, this.amount, {this.comment = ''});
 
   DayEntry.fromJson(Map<String, dynamic> json) {
     List<String> parts = json['time'].split(':');
@@ -14,7 +14,7 @@ class DayEntry {
     int mm = int.parse(parts[1]);
     this.time = TimeOfDay(hour: hh, minute: mm);
     this.amount = json['amount'];
-    this.comment = json['comment'];
+    this.comment = json['comment'] ?? '';
   }
 
   DateTime get dateTime => Jiffy()
@@ -29,7 +29,6 @@ class DayEntry {
   Map<String, dynamic> toJson() => {
         '_type': runtimeType.toString(),
         'time': this.sTime,
-        'amount': amount,
         'comment': comment,
       };
 
@@ -47,11 +46,21 @@ class DayEntry {
     }
     return this.dateTime.difference(prev.dateTime);
   }
+
+  String toString() {
+    return runtimeType.toString() +
+        ' [' +
+        this.sTime +
+        '] "' +
+        this.comment +
+        '"';
+  }
 }
 
 class Ate extends DayEntry {
   @override
-  Ate(time, amount, {comment}) : super(time, amount, comment: comment);
+  Ate(TimeOfDay time, double amount, {String comment = ''})
+      : super(time, amount, comment: comment);
 
   Ate.fromJson(Map<String, dynamic> json) : super(TimeOfDay.now(), 0.0) {
     List<String> parts = json['time'].split(':');
@@ -59,13 +68,13 @@ class Ate extends DayEntry {
     int mm = int.parse(parts[1]);
     this.time = TimeOfDay(hour: hh, minute: mm);
     this.amount = json['amount'];
-    this.comment = json['comment'];
+    this.comment = json['comment'] ?? '';
   }
 }
 
 class CommentEntry extends DayEntry {
-  CommentEntry(TimeOfDay time, double amount, {comment})
-      : super(time, amount, comment: comment);
+  CommentEntry(TimeOfDay time, String comment)
+      : super(time, 0, comment: comment);
 
   CommentEntry.fromJson(Map<String, dynamic> json)
       : super(TimeOfDay.now(), 0.0) {
@@ -109,5 +118,13 @@ class DayData {
       return element is Ate;
     }));
     return onlyAte;
+  }
+
+  String toString() {
+    String content = '';
+    content += 'Date: ' + this.date.toIso8601String() + "\n";
+    content += 'Intake [' + this.intake.length.toString() + "]:\n";
+    this.intake.forEach((el) => {content += '  * ' + el.toString() + '\n'});
+    return content;
   }
 }

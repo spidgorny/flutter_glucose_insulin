@@ -1,5 +1,6 @@
 import 'package:flutterglucoseinsulin/test/daydata.dart';
 
 main() {
-  testDayData();
+//  testDayData();
+  testDayFill();
 }

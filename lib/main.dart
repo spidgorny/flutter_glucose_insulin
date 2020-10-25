@@ -87,7 +87,7 @@ class _MyHomePageState extends State<MyHomePage> {
     JsonStore jsonStore = JsonStore();
 //    DateTime today = this.today();
     String ymd = this.ymd();
-    print(['ymd', ymd, this.day.toJson()]);
+    print(['saveDay', 'ymd', ymd, this.day.toJson()]);
     try {
       await jsonStore.setItem(ymd, this.day.toJson());
     } catch (e) {
@@ -252,6 +252,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 MaterialPageRoute(
                     builder: (context) => EntryPage(
                           edit: item,
+                          withMealSize: item is Ate,
                         )),
               );
               if (newVal == null) {

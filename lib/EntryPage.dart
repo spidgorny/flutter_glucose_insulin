@@ -5,7 +5,7 @@ import 'package:flutter_xlider/flutter_xlider.dart';
 import 'DayData.dart';
 
 class EntryPage extends StatefulWidget {
-  final Ate edit;
+  final DayEntry edit;
   final bool withMealSize;
 
   static String deleteCode = '*DEL*ME*';
@@ -52,7 +52,9 @@ class _EntryPageState extends State<EntryPage> {
     _commentController.text = this.comment;
     return Scaffold(
         appBar: AppBar(
-          title: Text("How much did you eat?"),
+          title: Text(widget.withMealSize
+              ? "How much did you eat?"
+              : 'Log events during the day'),
           actions: <Widget>[
             IconButton(
               icon: Icon(Icons.delete),
@@ -136,8 +138,7 @@ class _EntryPageState extends State<EntryPage> {
                   if (widget.withMealSize) {
                     result = new Ate(this.time, this.sliderValue);
                   } else {
-                    result =
-                        new CommentEntry(this.time, 0, comment: this.comment);
+                    result = new CommentEntry(this.time, this.comment);
                   }
                   Navigator.pop(context, result);
                 },
